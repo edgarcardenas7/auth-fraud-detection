@@ -1,7 +1,12 @@
 # Auth & Fraud Detection API
 
+
 Sistema de autenticación con detección de anomalías usando Machine Learning.
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ## 🚀 Características
 
 - ✅ Registro y autenticación de usuarios

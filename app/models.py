@@ -1,44 +1,46 @@
 """
-Modelos Pydantic para validación de datos.
-
-Estos modelos definen la "forma" de los datos que tu API acepta.
-Pydantic valida automáticamente y convierte tipos.
+Modelos de datos para validación (Pydantic) y base de datos (SQLModel).
 """
-from pydantic import BaseModel, EmailStr, Field
+from sqlmodel import SQLModel, Field
+from pydantic import EmailStr
+from typing import Optional
+from datetime import datetime
 
 
-class UserSignup(BaseModel):
+# ========== MODELO DE BASE DE DATOS ==========
+class User(SQLModel, table=True):
     """
-    Esquema para registro de nuevos usuarios.
+    Tabla de usuarios en PostgreSQL.
 
-    Attributes:
-        username: Nombre de usuario único
-        email: Email válido (Pydantic lo valida automáticamente)
-        password: Contraseña (mínimo 8 caracteres)
+    SQLModel combina Pydantic (validación) con SQLAlchemy (ORM).
     """
-    username: str = Field(
-        ...,  # Campo obligatorio
-        min_length=3,
-        max_length=50,
-        description="Nombre de usuario único"
-    )
-    email: EmailStr = Field(
-        ...,
-        description="Email válido del usuario"
-    )
-    password: str = Field(
-        ...,
-        min_length=8,
-        description="Contraseña (mínimo 8 caracteres)"
-    )
+    __tablename__ = "users"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(index=True, unique=True, max_length=50)
+    email: str = Field(index=True, unique=True)
+    hashed_password: str  # NUNCA guardamos passwords en texto plano
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class UserResponse(BaseModel):
+# ========== SCHEMAS PARA LA API (solo validación) ==========
+class UserSignup(SQLModel):
     """
-    Esquema para respuestas (sin contraseña).
-
-    NUNCA devuelvas la contraseña en las respuestas.
+    Schema para registro de usuarios (lo que recibe la API).
     """
-    username: str
+    username: str = Field(min_length=3, max_length=50)
     email: EmailStr
-    message: str
+    password: str = Field(min_length=8)
+
+
+class UserResponse(SQLModel):
+    """
+    Schema para respuestas (lo que devuelve la API).
+    NUNCA incluye la contraseña.
+    """
+    id: int
+    username: str
+    email: str
+    is_active: bool
+    created_at: datetime
