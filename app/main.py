@@ -1,8 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlmodel import Session, select
-from app.models import User, UserSignup, UserResponse
+# Imports actualizados con los nuevos Schemas
+from app.models import User, UserSignup, UserResponse, UserLogin, Token
 from app.database import create_db_and_tables, get_session
-from app.auth.security import hash_password
+# Imports de seguridad actualizados (hash + verify)
+from app.auth.security import hash_password, verify_password
+# Import para generar el JWT
+from app.auth.jwt import create_access_token
 
 app = FastAPI(
     title="Auth & Fraud Detection API",
@@ -25,7 +29,8 @@ def root():
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
-            "signup": "/signup"
+            "signup": "/signup",
+            "login": "/login"  # Agregado a la lista para referencia
         }
     }
 
@@ -88,3 +93,57 @@ def signup(
     session.refresh(new_user)  # Obtiene el ID generado
 
     return new_user
+
+
+# ========== NUEVO ENDPOINT DE LOGIN ==========
+@app.post("/login", response_model=Token)
+def login(
+        credentials: UserLogin,
+        session: Session = Depends(get_session)
+):
+    """
+    Autentica un usuario y devuelve un JWT token.
+
+    Args:
+        credentials: Email y password del usuario
+
+    Returns:
+        JWT token para acceder a endpoints protegidos
+
+    Raises:
+        401: Credenciales inválidas
+    """
+    # 1. Busca el usuario por email
+    user = session.exec(
+        select(User).where(User.email == credentials.email)
+    ).first()
+
+    # 2. Verifica que el usuario existe
+    if not user:
+        # Nota de seguridad: Es mejor decir "Email o contraseña incorrectos"
+        # para no dar pistas de qué emails existen.
+        raise HTTPException(
+            status_code=401,
+            detail="Email o contraseña incorrectos"
+        )
+
+    # 3. Verifica la contraseña
+    if not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Email o contraseña incorrectos"
+        )
+
+    # 4. Verifica que el usuario está activo (opcional pero recomendado)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=401,
+            detail="Usuario inactivo"
+        )
+
+    # 5. Crea el JWT token
+    access_token = create_access_token(
+        data={"sub": user.email}  # "sub" = subject (estándar JWT)
+    )
+
+    return Token(access_token=access_token)

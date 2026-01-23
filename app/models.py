@@ -44,3 +44,27 @@ class UserResponse(SQLModel):
     email: str
     is_active: bool
     created_at: datetime
+
+
+# ========== SCHEMAS PARA LOGIN (Corrección de indentación aquí) ==========
+class UserLogin(SQLModel):
+    """
+    Schema para login de usuarios.
+    """
+    email: EmailStr
+    password: str
+
+
+class Token(SQLModel):
+    """
+    Schema para respuesta de login exitoso.
+    """
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(SQLModel):
+    """
+    Datos extraídos del token.
+    """
+    email: Optional[str] = None
