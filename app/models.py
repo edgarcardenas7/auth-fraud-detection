@@ -7,27 +7,51 @@ from typing import Optional
 from datetime import datetime
 
 
-# ========== MODELO DE BASE DE DATOS ==========
+# ========== MODELO DE USUARIOS (Tabla) ==========
 class User(SQLModel, table=True):
     """
     Tabla de usuarios en PostgreSQL.
-
-    SQLModel combina Pydantic (validación) con SQLAlchemy (ORM).
     """
     __tablename__ = "users"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True, max_length=50)
     email: str = Field(index=True, unique=True)
-    hashed_password: str  # NUNCA guardamos passwords en texto plano
+    hashed_password: str
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-# ========== SCHEMAS PARA LA API (solo validación) ==========
+# ========== MODELO DE INTENTOS DE LOGIN (Nueva Tabla) ==========
+class LoginAttempt(SQLModel, table=True):
+    """
+    Tabla para registrar todos los intentos de login.
+    Usada para entrenamiento del modelo de ML (Isolation Forest).
+    """
+    __tablename__ = "login_attempts"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(foreign_key="users.id")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    ip_address: str
+    user_agent: Optional[str] = None
+    success: bool  # True si el login fue exitoso
+
+    # Features específicas para el Machine Learning
+    hour_of_day: int = Field(default=0)  # 0-23
+    day_of_week: int = Field(default=0)  # 0-6 (Lunes-Domingo)
+
+    # Índices para que las búsquedas de historial sean rápidas
+    class Config:
+        indexes = [
+            ("user_id", "timestamp"),
+        ]
+
+
+# ========== SCHEMAS PARA LA API (Validación) ==========
 class UserSignup(SQLModel):
     """
-    Schema para registro de usuarios (lo que recibe la API).
+    Schema para registro de usuarios.
     """
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
@@ -36,8 +60,7 @@ class UserSignup(SQLModel):
 
 class UserResponse(SQLModel):
     """
-    Schema para respuestas (lo que devuelve la API).
-    NUNCA incluye la contraseña.
+    Schema para respuestas públicas (sin password).
     """
     id: int
     username: str
@@ -46,10 +69,9 @@ class UserResponse(SQLModel):
     created_at: datetime
 
 
-# ========== SCHEMAS PARA LOGIN (Corrección de indentación aquí) ==========
 class UserLogin(SQLModel):
     """
-    Schema para login de usuarios.
+    Schema para login (JSON legacy).
     """
     email: EmailStr
     password: str

@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.security import OAuth2PasswordRequestForm  # <--- IMPORTANTE
+from fastapi import FastAPI, HTTPException, Depends, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
+from datetime import datetime
+from typing import List
 
-# Imports de Schemas (Modelos de datos)
-from app.models import User, UserSignup, UserResponse, Token
+# Imports de Schemas y Modelos
+# Agregamos LoginAttempt aquí
+from app.models import User, UserSignup, UserResponse, Token, LoginAttempt
 from app.database import create_db_and_tables, get_session
 # Imports de seguridad
 from app.auth.security import hash_password, verify_password
@@ -16,10 +19,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Evento de startup
+
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+
 
 @app.get("/")
 def root():
@@ -30,9 +34,11 @@ def root():
             "docs": "/docs",
             "signup": "/signup",
             "login": "/login",
-            "me": "/me"
+            "me": "/me",
+            "history": "/me/login-history"
         }
     }
+
 
 @app.get("/health")
 def health_check():
@@ -41,27 +47,21 @@ def health_check():
         "service": "auth-fraud-detection"
     }
 
-# ========== REGISTRO DE USUARIOS ==========
+
+# ========== REGISTRO ==========
 @app.post("/signup", response_model=UserResponse, status_code=201)
 def signup(
         user_data: UserSignup,
         session: Session = Depends(get_session)
 ):
-    # 1. Verifica si el email ya existe
-    existing_user = session.exec(
-        select(User).where(User.email == user_data.email)
-    ).first()
+    existing_user = session.exec(select(User).where(User.email == user_data.email)).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
-    # 2. Verifica si el username ya existe
-    existing_username = session.exec(
-        select(User).where(User.username == user_data.username)
-    ).first()
+    existing_username = session.exec(select(User).where(User.username == user_data.username)).first()
     if existing_username:
         raise HTTPException(status_code=400, detail="Username ya existe")
 
-    # 3. Crea el usuario
     hashed_pwd = hash_password(user_data.password)
     new_user = User(
         username=user_data.username,
@@ -69,25 +69,24 @@ def signup(
         hashed_password=hashed_pwd
     )
 
-    # 4. Guarda en DB
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
     return new_user
 
 
-# ========== LOGIN (Estándar OAuth2) ==========
+# ========== LOGIN (Con Registro de Actividad) ==========
 @app.post("/login", response_model=Token)
 def login(
-    # Esto lee el formulario que envía Swagger (username/password)
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session)
+        request: Request,  # <--- NUEVO: Para obtener IP y User-Agent
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        session: Session = Depends(get_session)
 ):
     """
-    Login compatible con OAuth2 (Swagger Authorize).
-    Usa 'username' para enviar el email.
+    Login compatible con OAuth2.
+    Registra IP, Hora y User-Agent para detección de anomalías.
     """
-    # 1. Busca el usuario (OJO: form_data.username contiene el email)
+    # 1. Busca usuario
     user = session.exec(
         select(User).where(User.email == form_data.username)
     ).first()
@@ -100,19 +99,65 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 3. Crea el JWT token
-    access_token = create_access_token(
-        data={"sub": user.email}
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="Usuario inactivo")
+
+    # 3. REGISTRO DE INTENTO DE LOGIN (NUEVO)
+    # Antes de dar el token, guardamos la evidencia
+    now = datetime.utcnow()
+    login_attempt = LoginAttempt(
+        user_id=user.id,
+        timestamp=now,
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent", "unknown"),
+        success=True,
+        hour_of_day=now.hour,
+        day_of_week=now.weekday()
     )
 
+    session.add(login_attempt)
+    session.commit()
+
+    # 4. Genera Token
+    access_token = create_access_token(data={"sub": user.email})
     return Token(access_token=access_token)
 
 
-# ========== ENDPOINT PROTEGIDO ==========
+# ========== ENDPOINTS PROTEGIDOS ==========
 @app.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
-    """
-    Devuelve los datos del usuario logueado.
-    Requiere Header -> Authorization: Bearer <token>
-    """
     return current_user
+
+
+@app.get("/me/login-history")
+def get_login_history(
+        current_user: User = Depends(get_current_user),
+        session: Session = Depends(get_session),
+        limit: int = 10
+):
+    """
+    Devuelve los últimos logins del usuario.
+    Sirve para ver qué datos está aprendiendo el modelo.
+    """
+    attempts = session.exec(
+        select(LoginAttempt)
+        .where(LoginAttempt.user_id == current_user.id)
+        .where(LoginAttempt.success == True)
+        .order_by(LoginAttempt.timestamp.desc())
+        .limit(limit)
+    ).all()
+
+    return {
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "total_tracked": len(attempts),
+        "recent_logins": [
+            {
+                "timestamp": attempt.timestamp,
+                "ip": attempt.ip_address,
+                "hour": attempt.hour_of_day,
+                "day": attempt.day_of_week
+            }
+            for attempt in attempts
+        ]
+    }
