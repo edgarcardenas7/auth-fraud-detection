@@ -26,7 +26,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Define que el token viene del endpoint "/login"
 # Esto es lo que hace que Swagger muestre el botón "Authorize"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # ========== FUNCIONES DE LÓGICA PURA (Matemáticas) ==========
