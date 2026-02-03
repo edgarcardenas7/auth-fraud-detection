@@ -244,10 +244,10 @@ railway up
 ![Admin Anomalies](docs/screenshots/admin-anomalies.png)
 
 ### Base de Datos - Persistencia SQL
-![Database Data](docs/screenshots/database-data.png)
+![Database Data](docs/screenshots/docker-running.png)
 
 ### Infraestructura - Docker & ML Training
-![Docker Running](docs/screenshots/docker-running.png)
+![Docker Running](docs/screenshots/database-data.png)
 
 ### Historial de Desarrollo 
 ![Commits](docs/screenshots/github-commits.png)
