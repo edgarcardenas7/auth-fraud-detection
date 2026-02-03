@@ -249,6 +249,12 @@ railway up
 ### Infraestructura - Docker & ML Training
 ![Docker Running](docs/screenshots/docker-running.png)
 
+### Historial de Desarrollo 
+![Commits](docs/screenshots/github-commits.png)
+
+
+
+
 ## 👨‍💻 Autor
 
 **Edgar Cárdenas**  
