@@ -234,6 +234,21 @@ railway up
 3. Configura las variables de entorno
 4. Deploy automático
 
+
+## 📸 Screenshots
+
+### Swagger UI - Documentación Interactiva
+![Swagger UI](docs/screenshots/swagger-ui.png)
+
+### Admin Dashboard - Detección de Anomalías
+![Admin Anomalies](docs/screenshots/admin-anomalies.png)
+
+### Base de Datos - Persistencia SQL
+![Database Data](docs/screenshots/database-data.png)
+
+### Infraestructura - Docker & ML Training
+![Docker Running](docs/screenshots/docker-running.png)
+
 ## 👨‍💻 Autor
 
 **Edgar Cárdenas**  
