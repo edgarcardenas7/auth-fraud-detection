@@ -8,6 +8,13 @@ Sistema de autenticación con detección de anomalías en tiempo real usando Mac
 ![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+## 🚀 Demo en Vivo
+
+¡Pruébalo ahora mismo!
+👉 **URL Base:** https://auth-fraud-detection.onrender.com
+📄 **Documentación (Swagger):** https://auth-fraud-detection.onrender.com/docs
+
+
 ## 🚀 Características
 
 - ✅ Registro y autenticación de usuarios (OAuth2 estándar)
