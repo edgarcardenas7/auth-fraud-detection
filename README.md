@@ -8,12 +8,13 @@ Sistema de autenticación con detección de anomalías en tiempo real usando Mac
 ![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## 🚀 Demo en Vivo
+## 🌐 Demo en Producción
 
-¡Pruébalo ahora mismo!
-👉 **URL Base:** https://auth-fraud-detection.onrender.com
-📄 **Documentación (Swagger):** https://auth-fraud-detection.onrender.com/docs
+**API Pública**: https://auth-fraud-detection.onrender.com
 
+**Documentación Interactiva (Swagger)**: https://auth-fraud-detection.onrender.com/docs
+
+> ⚠️ **Nota**: El servicio usa Render Free tier, por lo que el primer request después de inactividad puede tardar ~30 segundos (cold start).
 
 ## 🚀 Características
 
@@ -54,6 +55,7 @@ Sistema de autenticación con detección de anomalías en tiempo real usando Mac
 - **Docker**: Contenedores para FastAPI + PostgreSQL
 - **docker-compose**: Orquestación local
 - **uvicorn**: Servidor ASGI
+- **Render**: Deploy en producción
 
 ## 🔐 Seguridad
 
@@ -140,7 +142,7 @@ uvicorn app.main:app --reload
 
 ### 1. Registro
 ```bash
-curl -X POST http://localhost:8000/auth/signup \
+curl -X POST https://auth-fraud-detection.onrender.com/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "username": "edgar",
@@ -151,14 +153,14 @@ curl -X POST http://localhost:8000/auth/signup \
 
 ### 2. Login
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST https://auth-fraud-detection.onrender.com/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=edgar@example.com&password=secreto123"
 ```
 
 ### 3. Acceder a endpoint protegido
 ```bash
-curl http://localhost:8000/users/me \
+curl https://auth-fraud-detection.onrender.com/users/me \
   -H "Authorization: Bearer <tu-token-jwt>"
 ```
 
@@ -208,8 +210,9 @@ curl http://localhost:8000/users/me \
 - [x] Arquitectura modular
 - [x] Dashboard administrativo
 - [x] Dockerización
-- [ ] Deploy en Railway/Render
+- [x] Deploy en Render
 - [ ] CI/CD con GitHub Actions
+- [ ] Tests con pytest (>80% coverage)
 - [ ] Monitoring y alertas
 
 ## 🧪 Testing
@@ -223,7 +226,13 @@ pytest --cov=app --cov-report=html
 
 ## 🚀 Deploy
 
-### Railway
+### Render
+1. Conecta tu repositorio de GitHub
+2. Selecciona "Web Service"
+3. Configura las variables de entorno (`DATABASE_URL`, `SECRET_KEY`)
+4. Deploy automático
+
+### Railway (Alternativa)
 ```bash
 # Instala Railway CLI
 npm install -g @railway/cli
@@ -234,13 +243,6 @@ railway login
 # Deploy
 railway up
 ```
-
-### Render
-1. Conecta tu repositorio de GitHub
-2. Selecciona "Web Service"
-3. Configura las variables de entorno
-4. Deploy automático
-
 
 ## 📸 Screenshots
 
@@ -256,11 +258,8 @@ railway up
 ### Infraestructura - Docker & ML Training
 ![Docker Running](docs/screenshots/docker-running.png)
 
-### Historial de Desarrollo 
+### Historial de Desarrollo
 ![Commits](docs/screenshots/github-commits.png)
-
-
-
 
 ## 👨‍💻 Autor
 
